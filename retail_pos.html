@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Retail POS - V3</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a; --surface: #1e293b; --surface-hover: #334155;
+            --primary: #3b82f6; --primary-hover: #2563eb;
+            --success: #10b981; --danger: #ef4444; --warning: #f59e0b;
+            --text-main: #f8fafc; --text-muted: #94a3b8; --border: #334155;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+
+        /* Navigation */
+        .sidebar { width: 250px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 1rem; overflow-y: auto; }
+        .sidebar-brand { font-size: 1.25rem; font-weight: 700; margin-bottom: 2rem; color: var(--primary); display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; }
+        .nav-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--text-muted); text-decoration: none; border-radius: 0.5rem; margin-bottom: 0.5rem; transition: all 0.2s; cursor: pointer; border: none; background: none; font-size: 0.95rem; width: 100%; text-align: left; }
+        .nav-link:hover, .nav-link.active { background: var(--primary); color: white; }
+        
+        .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--glass-bg); backdrop-filter: blur(10px); border-top: 1px solid var(--border); padding: 0.5rem; z-index: 50; }
+        .bottom-nav-inner { display: flex; justify-content: space-around; align-items: center; }
+        .bottom-nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; color: var(--text-muted); font-size: 0.75rem; text-decoration: none; padding: 0.5rem; border-radius: 0.5rem; cursor: pointer; border: none; background: none; }
+        .bottom-nav-item.active { color: var(--primary); }
+
+        /* Main Content */
+        .main-content { flex: 1; overflow-y: auto; padding: 2rem; position: relative; }
+        .top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+        .page-title { font-size: 1.5rem; font-weight: 600; display: flex; align-items: center; gap: 0.75rem; }
+        
+        /* Views */
+        .view { display: none; animation: fadeIn 0.3s ease; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Components */
+        .btn { padding: 0.5rem 1rem; border-radius: 0.5rem; border: none; cursor: pointer; font-weight: 500; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.875rem; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-whatsapp { background: #25D366; color: white; }
+        
+        .card { background: var(--surface); border-radius: 1rem; border: 1px solid var(--border); padding: 1.5rem; }
+        .badge { padding: 0.25rem 0.5rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600; }
+        .badge-danger { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+        .badge-success { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+        .badge-warning { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+
+        .form-control { width: 100%; padding: 0.75rem; background: var(--bg-color); border: 1px solid var(--border); border-radius: 0.5rem; color: white; margin-bottom: 1rem; }
+        .form-label { display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.875rem; }
+
+        /* Layouts */
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
+        
+        /* Modals */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; overflow-y:auto; padding:1rem;}
+        .modal { background: var(--surface); border-radius: 1rem; width: 100%; max-width: 500px; padding: 2rem; border: 1px solid var(--border); }
+        .modal.show { display: block; }
+        
+        /* Tables */
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { color: var(--text-muted); font-size: 0.875rem; font-weight: 500; }
+
+        /* Toast */
+        #toast { position: fixed; top: 20px; right: 20px; background: var(--success); color: white; padding: 1rem; border-radius: 0.5rem; z-index: 1000; display: none; align-items: center; gap: 0.5rem; }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .bottom-nav { display: block; }
+            .main-content { padding: 1rem; padding-bottom: 6rem; }
+            .grid-4, .grid-3 { grid-template-columns: 1fr; }
+            .hide-mobile { display: none; }
+        }
+        @media print {
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { position: absolute; left: 0; top: 0; width: 100%; color: black; background: white; padding: 1rem; }
+            .btn { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="sidebar-brand"><i data-lucide="store"></i> Retail POS</div>
+    <button class="nav-link active" onclick="nav('dashboard')"><i data-lucide="layout-dashboard"></i> Dashboard</button>
+    <button class="nav-link" onclick="nav('billing')"><i data-lucide="receipt"></i> Billing</button>
+    <button class="nav-link" onclick="nav('customers')"><i data-lucide="users"></i> Customers</button>
+    <button class="nav-link" onclick="nav('products')"><i data-lucide="package"></i> Products</button>
+    <button class="nav-link" onclick="nav('shopping-list')"><i data-lucide="shopping-cart"></i> Shopping List <span id="sl-badge" class="badge badge-warning" style="margin-left:auto; display:none">0</span></button>
+    <button class="nav-link" onclick="nav('ice-cream')"><i data-lucide="ice-cream"></i> Ice Cream</button>
+    <button class="nav-link" onclick="nav('settings')"><i data-lucide="settings"></i> Settings</button>
+</aside>
+
+<main class="main-content">
+
+    <!-- DASHBOARD -->
+    <div id="view-dashboard" class="view active">
+        <div class="top-header"><h1 class="page-title">Dashboard</h1></div>
+        <div class="grid-3 mb-4" style="margin-bottom: 2rem;">
+            <div class="card">
+                <div class="text-muted">Today's Sales</div>
+                <div id="dash-today-sales" style="font-size: 2rem; font-weight: 700;">₹0</div>
+            </div>
+            <div class="card">
+                <div class="text-muted">Total Pending</div>
+                <div id="dash-total-pending" style="font-size: 2rem; font-weight: 700; color: var(--danger);">₹0</div>
+            </div>
+            <div class="card">
+                <div class="text-muted">Shopping List</div>
+                <div id="dash-shopping-list" style="font-size: 2rem; font-weight: 700; color: var(--warning);">0 <span style="font-size:1rem">items</span></div>
+            </div>
+        </div>
+        <div class="grid-2">
+            <div class="card">
+                <h3 style="margin-bottom:1rem">Highest Pending Customers</h3>
+                <div id="dash-highest-pending"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CUSTOMERS LIST -->
+    <div id="view-customers" class="view">
+        <div class="top-header">
+            <h1 class="page-title">Customers</h1>
+            <div style="display:flex; gap:1rem;">
+                <input type="text" class="form-control" style="margin:0; width:250px" placeholder="Search phone or name..." oninput="renderCustomers(this.value)">
+                <button class="btn btn-outline" onclick="exportCustomersCSV()"><i data-lucide="download"></i> Export CSV</button>
+                <button class="btn btn-primary" onclick="showCustomerModal()">Add Customer</button>
+            </div>
+        </div>
+        <div style="display:flex; gap:1rem; margin-bottom:1rem; overflow-x:auto;">
+            <button class="btn btn-outline" id="c-filter-all" onclick="filterCustomers('all')" style="border-color:var(--primary); color:var(--primary)">All</button>
+            <button class="btn btn-outline" id="c-filter-pending" onclick="filterCustomers('pending')">Pending (Highest to Lowest) 💰</button>
+            <button class="btn btn-outline" id="c-filter-paid" onclick="filterCustomers('paid')">Paid ✅</button>
+        </div>
+        <div class="card table-responsive" style="padding:0;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>Phone</th>
+                        <th>Status</th>
+                        <th>Pending</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="customers-table"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- CUSTOMER PROFILE -->
+    <div id="view-customer-profile" class="view">
+        <div class="top-header">
+            <h1 class="page-title"><button class="btn btn-outline" style="padding:0.5rem" onclick="nav('customers')"><i data-lucide="arrow-left"></i></button> Customer Profile</h1>
+            <div>
+                <button class="btn btn-outline" onclick="editCurrentCustomer()"><i data-lucide="edit" size="18"></i> Edit</button>
+                <button class="btn btn-outline" style="color:var(--danger)" onclick="archiveCurrentCustomer()"><i data-lucide="trash" size="18"></i> Archive</button>
+            </div>
+        </div>
+        
+        <div class="grid-2" style="margin-bottom:2rem;">
+            <div class="card">
+                <h2 id="cp-name">Name</h2>
+                <div id="cp-phone" style="color:var(--text-muted); font-size:1.1rem; margin-bottom:1.5rem;">📞 Phone</div>
+                <div style="display:flex; gap:1rem; flex-wrap:wrap">
+                    <button class="btn btn-whatsapp" id="cp-wa"><i data-lucide="message-circle"></i> WhatsApp</button>
+                    <button class="btn btn-outline" id="cp-call"><i data-lucide="phone"></i> Call</button>
+                    <button class="btn btn-outline" id="cp-sms"><i data-lucide="message-square"></i> SMS</button>
+                </div>
+            </div>
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
+                    <span class="text-muted">Total Purchased</span>
+                    <span id="cp-purchased" style="font-weight:600">₹0</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
+                    <span class="text-muted">Total Paid</span>
+                    <span id="cp-paid" style="font-weight:600; color:var(--success)">₹0</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem; padding-top:1rem; border-top:1px solid var(--border);">
+                    <span class="text-muted">Total Pending</span>
+                    <span id="cp-pending" style="font-weight:700; font-size:1.5rem; color:var(--danger)">₹0</span>
+                </div>
+                <button class="btn btn-primary" style="width:100%" onclick="showRecordPaymentModal()">Record Payment</button>
+            </div>
+        </div>
+        
+        <div class="card table-responsive" style="padding:0">
+            <div style="padding:1.5rem; border-bottom:1px solid var(--border)">
+                <h3 style="margin:0">Invoice History</h3>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Invoice</th>
+                        <th>Total</th>
+                        <th>Paid</th>
+                        <th>Pending</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="cp-history"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- BILLING -->
+    <div id="view-billing" class="view">
+        <div class="top-header"><h1 class="page-title">Billing</h1></div>
+        <div class="grid-2">
+            <div>
+                <div class="card" style="margin-bottom:1rem;">
+                    <h3 style="margin-bottom:1rem">Customer Details</h3>
+                    <label class="form-label">Phone Number *</label>
+                    <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+                        <input type="text" class="form-control" style="margin:0" id="bill-phone" placeholder="Enter phone" oninput="checkDuplicateBillingCustomer()">
+                        <button class="btn btn-outline" onclick="checkDuplicateBillingCustomer()"><i data-lucide="search"></i></button>
+                    </div>
+                    
+                    <div id="bill-duplicate-warning" style="background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); padding:1rem; border-radius:0.5rem; margin-bottom:1rem; display:none;">
+                        <div style="color:var(--warning); font-weight:600; margin-bottom:0.5rem">Existing Customer Found!</div>
+                        <div id="bill-dup-name">Name: </div>
+                        <button class="btn btn-primary" style="margin-top:0.5rem" onclick="useExistingBillingCustomer()">Use Existing Customer</button>
+                    </div>
+                    
+                    <label class="form-label">Customer Name *</label>
+                    <input type="text" class="form-control" id="bill-name" placeholder="Enter name">
+                </div>
+                
+                <div class="card">
+                    <h3 style="margin-bottom:1rem">Add Products</h3>
+                    <input type="text" class="form-control" placeholder="Search products..." oninput="renderBillingProducts(this.value)">
+                    <div id="bill-product-list" style="max-height: 300px; overflow-y: auto;"></div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3 style="margin-bottom:1rem; border-bottom:1px solid var(--border); padding-bottom:1rem;">Current Bill</h3>
+                
+                <div id="bill-items" style="max-height:300px; overflow-y:auto; margin-bottom:1rem"></div>
+                
+                <div style="border-top:1px dashed var(--border); margin:1rem 0; padding-top:1rem;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                        <span class="text-muted">Subtotal</span>
+                        <span id="bill-subtotal" style="font-weight:600">₹0.00</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                        <span class="text-muted">GST</span>
+                        <span id="bill-gst" style="font-weight:600">₹0.00</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                        <span class="text-muted">Total Amount</span>
+                        <span id="bill-total" style="font-weight:700; font-size:1.25rem">₹0.00</span>
+                    </div>
+                    <label class="form-label" style="margin-top:1rem">Amount Received</label>
+                    <input type="number" class="form-control" id="bill-received" value="0" oninput="calcBillPending()">
+                    <div style="display:flex; justify-content:space-between; margin-top:1rem;">
+                        <span class="text-muted">Pending Amount</span>
+                        <span id="bill-pending" style="font-weight:700; color:var(--danger)">₹0.00</span>
+                    </div>
+                    <div id="bill-status" style="font-size:0.875rem; color:var(--danger); font-weight:600; margin-top:0.5rem;">Status: UNPAID</div>
+                    
+                    <button class="btn btn-success" style="width:100%; margin-top:1.5rem; padding:1rem" onclick="completeBill()">Complete Bill</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PRODUCTS -->
+    <div id="view-products" class="view">
+        <div class="top-header">
+            <h1 class="page-title">Products</h1>
+            <div style="display:flex; gap:1rem; flex-wrap:wrap">
+                <input type="text" class="form-control" style="margin:0; width:200px" placeholder="Search..." oninput="renderProductsView(this.value)">
+                <button class="btn btn-outline" onclick="showProductModal()"><i data-lucide="plus"></i> Add Product</button>
+                <button class="btn btn-outline" onclick="document.getElementById('modal-csv').style.display='flex'"><i data-lucide="upload"></i> CSV</button>
+            </div>
+        </div>
+        <div class="grid-4" id="products-grid"></div>
+    </div>
+
+    <!-- SHOPPING LIST -->
+    <div id="view-shopping-list" class="view">
+        <div class="top-header">
+            <h1 class="page-title">Shopping List</h1>
+            <div style="display:flex; gap:1rem;">
+                <button class="btn btn-outline" onclick="shareShoppingList()"><i data-lucide="share-2"></i> Share List</button>
+                <button class="btn btn-success" onclick="nav('shopping-mode')"><i data-lucide="play"></i> Start Shopping</button>
+            </div>
+        </div>
+        
+        <div class="grid-2">
+            <div class="card">
+                <h3>Select Products to Buy</h3>
+                <input type="text" class="form-control" placeholder="Search catalog..." oninput="renderShopCatalog(this.value)" style="margin-top:1rem">
+                <div id="shop-catalog" style="max-height:400px; overflow-y:auto"></div>
+            </div>
+            
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--border); padding-bottom:1rem">
+                    <h3 style="margin:0">My Shopping List</h3>
+                    <button class="btn btn-outline" style="color:var(--danger)" onclick="clearShoppingList()">Clear All</button>
+                </div>
+                <div id="shop-list-items" style="max-height:400px; overflow-y:auto"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHOPPING MODE -->
+    <div id="view-shopping-mode" class="view">
+        <div class="top-header" style="position: sticky; top: -2rem; background: var(--bg-color); z-index: 10; padding: 1rem 0; margin-top: -1rem; border-bottom: 1px solid var(--border);">
+            <h1 class="page-title">
+                <button class="btn btn-outline" style="padding: 0.5rem; border: none;" onclick="nav('shopping-list')"><i data-lucide="arrow-left"></i></button>
+                Today's Shopping
+            </h1>
+            <button class="btn btn-outline" onclick="document.querySelectorAll('.sm-check').forEach(cb => cb.checked = true)">Mark All</button>
+        </div>
+        
+        <div id="sm-items" style="margin-bottom: 100px;"></div>
+        
+        <div style="position: fixed; bottom: 80px; left: 0; right: 0; padding: 1rem; display: flex; justify-content: center; z-index: 20; pointer-events: none;">
+            <div style="pointer-events: auto; max-width: 600px; width: 100%;">
+                <button class="btn btn-primary" style="width:100%; padding:1rem; font-size:1.1rem; box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.5);" onclick="confirmPurchase()">
+                    Review & Confirm Purchase
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="view-settings" class="view">
+        <div class="top-header"><h1 class="page-title"><i data-lucide="settings"></i> Shop Settings</h1></div>
+        <div class="card" style="max-width: 600px;">
+            <label class="form-label">Shop Name *</label>
+            <input type="text" class="form-control" id="set-name" placeholder="Enter Shop Name">
+            
+            <label class="form-label">Shop Logo (Optional)</label>
+            <input type="file" id="set-logo" class="form-control" accept="image/*" onchange="previewSettingsLogo(event)">
+            <img id="set-logo-preview" style="width:100px; height:100px; object-fit:contain; display:none; margin-bottom:1rem; border-radius:0.5rem; background:white; padding:0.25rem;">
+            
+            <label class="form-label">Address *</label>
+            <textarea class="form-control" id="set-address" rows="3" placeholder="Enter Shop Address"></textarea>
+            
+            <label class="form-label">GST Number (Optional)</label>
+            <input type="text" class="form-control" id="set-gst" placeholder="Enter GSTIN">
+            
+            <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+        </div>
+    </div>
+
+    <!-- ICE CREAM DASHBOARD -->
+    <div id="view-ice-cream" class="view">
+        <div class="top-header"><h1 class="page-title"><i data-lucide="ice-cream"></i> Ice Cream Dashboard</h1></div>
+        <div class="grid-3 mb-4" style="margin-bottom: 2rem;">
+            <div class="card">
+                <div class="text-muted">Today's Ice Cream Sales</div>
+                <div id="ic-today-sales" style="font-size: 2rem; font-weight: 700;">₹0</div>
+            </div>
+            <div class="card warning">
+                <div class="text-muted">Low / Out of Stock</div>
+                <div id="ic-stock-alert" style="font-size: 2rem; font-weight: 700;">0 / 0</div>
+            </div>
+            <div class="card success">
+                <div class="text-muted">Top Selling</div>
+                <div id="ic-top" style="font-size: 1.25rem; font-weight: 600; margin-top: 0.5rem;">None</div>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<nav class="bottom-nav">
+    <div class="bottom-nav-inner">
+        <button class="bottom-nav-item active" onclick="nav('dashboard')"><i data-lucide="layout-dashboard"></i> Home</button>
+        <button class="bottom-nav-item" onclick="nav('billing')"><i data-lucide="receipt"></i> Bill</button>
+        <button class="bottom-nav-item" onclick="nav('customers')"><i data-lucide="users"></i> Cust</button>
+        <button class="bottom-nav-item" onclick="nav('shopping-list')"><i data-lucide="shopping-cart"></i> Shop</button>
+        <button class="bottom-nav-item" onclick="nav('products')"><i data-lucide="package"></i> Prod</button>
+        <button class="bottom-nav-item" onclick="nav('settings')"><i data-lucide="settings"></i> Set</button>
+    </div>
+</nav>
+
+<!-- MODALS -->
+
+<!-- Add Customer Modal -->
+<div class="modal-overlay" id="modal-customer">
+    <div class="modal">
+        <h2 style="margin-bottom:1rem">Add Customer</h2>
+        <label class="form-label">Phone Number *</label>
+        <input type="text" class="form-control" id="add-c-phone" placeholder="Enter 10-digit phone" oninput="checkDuplicateCustomer()">
+        
+        <label class="form-label">Customer Name *</label>
+        <input type="text" class="form-control" id="add-c-name" placeholder="Enter customer name" oninput="checkDuplicateCustomer()">
+        
+        <div id="add-c-dup-alert" style="display:none; padding:1rem; border-radius:0.5rem; margin-bottom:1rem;"></div>
+        
+        <div style="display:flex; gap:1rem; justify-content:flex-end; margin-top:1rem;">
+            <button class="btn btn-outline" onclick="closeModal('modal-customer')">Cancel</button>
+            <button class="btn btn-primary" id="add-c-submit" onclick="submitCustomer()">Save Customer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-overlay" id="modal-delete">
+    <div class="modal">
+        <h2 style="margin-bottom:1rem">Archive Customer?</h2>
+        <div style="padding:1rem; border-left:4px solid var(--danger); background:rgba(239,68,68,0.1); margin-bottom:1.5rem;">
+            <p style="margin-bottom:0.5rem">This customer has financial history.</p>
+        </div>
+        <p style="color:var(--text-muted); margin-bottom:2rem;">Deleting this customer may affect historical records. Archiving is recommended.</p>
+        <div style="display:flex; gap:1rem; justify-content:flex-end">
+            <button class="btn btn-outline" onclick="closeModal('modal-delete')">Cancel</button>
+            <button class="btn btn-danger" onclick="executeArchiveCustomer()">Archive</button>
+        </div>
+    </div>
+</div>
+
+<!-- Record Payment Modal -->
+<div class="modal-overlay" id="modal-payment">
+    <div class="modal">
+        <h2 style="margin-bottom:1rem">Record Payment</h2>
+        <div style="margin-bottom:1.5rem;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                <span class="text-muted">Current Pending:</span>
+                <span id="mp-pending" style="font-weight:700; color:var(--danger)">₹0</span>
+            </div>
+            <label class="form-label">Payment Received</label>
+            <input type="number" id="mp-received" class="form-control" oninput="calcPaymentModal()">
+            <div style="display:flex; justify-content:space-between;">
+                <span class="text-muted">Remaining Balance:</span>
+                <span id="mp-remaining" style="font-weight:700">₹0</span>
+            </div>
+        </div>
+        <div style="display:flex; gap:1rem; justify-content:flex-end">
+            <button class="btn btn-outline" onclick="closeModal('modal-payment')">Cancel</button>
+            <button class="btn btn-success" onclick="executeRecordPayment()">Save Payment</button>
+        </div>
+    </div>
+</div>
+
+<!-- Share Receipt Modal -->
+<div class="modal-overlay" id="modal-share">
+    <div class="modal">
+        <div style="text-align:center; margin-bottom:2rem;">
+            <div style="width:60px; height:60px; background:var(--success); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1rem;">
+                <i data-lucide="check" size="32" style="color:white"></i>
+            </div>
+            <h2>Transaction Successful</h2>
+            <div id="share-status" style="color:var(--text-muted); margin-top:0.5rem;">Status: PAID</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:1rem;">
+            <button class="btn btn-primary" style="padding:1rem; font-size:1.1rem" onclick="printReceipt()"><i data-lucide="printer"></i> Print Receipt</button>
+            <button class="btn btn-whatsapp" style="padding:1rem; font-size:1.1rem" onclick="executeShare('wa')"><i data-lucide="message-circle"></i> Send WhatsApp Receipt</button>
+            <button class="btn btn-outline" style="padding:1rem; font-size:1.1rem" onclick="executeShare('sms')"><i data-lucide="message-square"></i> Send SMS Receipt</button>
+            <button class="btn btn-outline" onclick="closeModal('modal-share')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Product Modal -->
+<div class="modal-overlay" id="modal-product">
+    <div class="modal">
+        <h2 style="margin-bottom:1rem" id="prod-modal-title">Add / Edit Product</h2>
+        <div id="prod-form">
+            <input type="hidden" id="prod-id">
+            <div class="grid-2">
+                <div>
+                    <label class="form-label">Product Name *</label>
+                    <input type="text" class="form-control" id="prod-name" required>
+                    <label class="form-label">Category *</label>
+                    <select class="form-control" id="prod-cat" required>
+                        <option value="">Select Category...</option>
+                        <option value="Dairy">Dairy</option>
+                        <option value="Ice Cream">Ice Cream</option>
+                        <option value="Beverages">Beverages</option>
+                        <option value="Snacks">Snacks</option>
+                        <option value="Groceries">Groceries</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <label class="form-label">Brand</label>
+                    <input type="text" class="form-control" id="prod-brand">
+                </div>
+                <div>
+                    <label class="form-label">Unit *</label>
+                    <input type="text" class="form-control" id="prod-unit" required>
+                    <label class="form-label">Purchase Price</label>
+                    <input type="number" class="form-control" id="prod-pp">
+                    <label class="form-label">Selling Price *</label>
+                    <input type="number" class="form-control" id="prod-sp" required>
+                </div>
+            </div>
+            <label class="form-label">Product Image (Optional)</label>
+            <input type="file" id="prod-img" class="form-control" accept="image/*" onchange="previewImage(event)">
+            <img id="prod-img-preview" style="width:100px; height:100px; object-fit:cover; display:none; margin-bottom:1rem; border-radius:0.5rem">
+            
+            <div style="display:flex; gap:1rem; justify-content:flex-end">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modal-product')">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveProduct()">Save Product</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CSV Modal -->
+<div class="modal-overlay" id="modal-csv">
+    <div class="modal">
+        <h2 style="margin-bottom:1rem">Import / Export CSV</h2>
+        <div style="display:flex; flex-direction:column; gap:1rem;">
+            <button class="btn btn-primary" onclick="exportCSV()"><i data-lucide="download"></i> Export Products CSV</button>
+            <hr style="border-color:var(--border)">
+            <label class="form-label">Import Products CSV</label>
+            <input type="file" class="form-control" accept=".csv" id="csv-file">
+            <button class="btn btn-outline" onclick="previewCSV()"><i data-lucide="upload"></i> Preview Import</button>
+        </div>
+        <div id="csv-preview" style="display:none; margin-top:1rem; padding:1rem; background:rgba(0,0,0,0.2); border-radius:0.5rem">
+            <h4 style="margin-bottom:0.5rem">Preview</h4>
+            <div id="csv-stats"></div>
+            <button class="btn btn-success" style="margin-top:1rem" onclick="executeCSVImport()">Confirm Import</button>
+        </div>
+        <button class="btn btn-outline" style="margin-top:1rem; width:100%" onclick="closeModal('modal-csv')">Close</button>
+    </div>
+</div>
+
+<div id="print-area"></div>
+<div id="toast"></div>
+
+<script>
+    lucide.createIcons();
+
+    // Data State
+    let products = JSON.parse(localStorage.getItem('pos_products')) || [];
+    let customers = JSON.parse(localStorage.getItem('pos_customers')) || [];
+    let invoices = JSON.parse(localStorage.getItem('pos_invoices')) || [];
+    let payments = JSON.parse(localStorage.getItem('pos_payments')) || [];
+    let shoppingList = JSON.parse(localStorage.getItem('pos_shopping_list')) || [];
+    let settings = JSON.parse(localStorage.getItem('pos_settings')) || { shopName: 'Retail POS', logo: '', address: '', gst: '' };
+    
+    let currentBillCustomer = null;
+    let currentBillItems = [];
+    let currentProfileId = null;
+    let currentShareData = null;
+    let currentFilter = 'all';
+    
+    function saveState() {
+        localStorage.setItem('pos_products', JSON.stringify(products));
+        localStorage.setItem('pos_customers', JSON.stringify(customers));
+        localStorage.setItem('pos_invoices', JSON.stringify(invoices));
+        localStorage.setItem('pos_payments', JSON.stringify(payments));
+        localStorage.setItem('pos_shopping_list', JSON.stringify(shoppingList));
+        localStorage.setItem('pos_settings', JSON.stringify(settings));
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerHTML = '<i data-lucide="check-circle"></i> ' + msg;
+        lucide.createIcons();
+        t.style.display = 'flex';
+        setTimeout(() => t.style.display = 'none', 3000);
+    }
+
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    
+    function nav(viewId) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById('view-' + viewId).classList.add('active');
+        document.querySelectorAll('.nav-link, .bottom-nav-item').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('[onclick="nav(\'' + viewId + '\')"]').forEach(v => v.classList.add('active'));
+        
+        if(viewId === 'dashboard') renderDashboard();
+        if(viewId === 'customers') renderCustomers();
+        if(viewId === 'products') renderProductsView();
+        if(viewId === 'billing') renderBillingProducts();
+        if(viewId === 'shopping-list') renderShopCatalog();
+        if(viewId === 'shopping-mode') renderShoppingMode();
+        if(viewId === 'ice-cream') renderIceCreamDashboard();
+        if(viewId === 'settings') renderSettings();
+    }
+
+    // --- DASHBOARD ---
+    function renderDashboard() {
+        let today = new Date().toISOString().split('T')[0];
+        let tSales = 0, tPending = 0;
+        invoices.forEach(i => { if(i.date === today) tSales += i.total; });
+        customers.forEach(c => { if(!c.archived) tPending += c.pending; });
+        
+        document.getElementById('dash-today-sales').innerText = '₹' + tSales.toFixed(2);
+        document.getElementById('dash-total-pending').innerText = '₹' + tPending.toFixed(2);
+        document.getElementById('dash-shopping-list').innerHTML = shoppingList.length + ' <span style="font-size:1rem">items</span>';
+        
+        let highest = [...customers].filter(c => !c.archived && c.pending > 0).sort((a,b) => b.pending - a.pending).slice(0,5);
+        let hHtml = highest.map(c => `
+            <div style="display:flex; justify-content:space-between; margin-bottom:1rem; padding-bottom:1rem; border-bottom:1px solid var(--border)">
+                <div>
+                    <div style="font-weight:600">${c.name}</div>
+                    <div style="font-size:0.875rem; color:var(--text-muted)">${c.phone}</div>
+                </div>
+                <div style="text-align:right">
+                    <div style="font-weight:700; color:var(--danger)">₹${c.pending.toFixed(2)}</div>
+                    <button class="btn btn-outline" style="padding:0.25rem 0.5rem; font-size:0.75rem; margin-top:0.5rem" onclick="openCustomerProfile('${c.id}')">View</button>
+                </div>
+            </div>
+        `).join('');
+        document.getElementById('dash-highest-pending').innerHTML = hHtml || '<div class="text-muted">No pending customers.</div>';
+    }
+
+    // --- CUSTOMERS ---
+    function renderCustomers(search = '') {
+        const tbody = document.getElementById('customers-table');
+        tbody.innerHTML = '';
+        let s = search.toLowerCase();
+        
+        let filteredCustomers = [...customers].filter(c => !c.archived && (c.name.toLowerCase().includes(s) || c.phone.includes(s)));
+        
+        if (currentFilter === 'pending') {
+            filteredCustomers = filteredCustomers.filter(c => c.pending > 0).sort((a, b) => b.pending - a.pending);
+        } else if (currentFilter === 'paid') {
+            filteredCustomers = filteredCustomers.filter(c => c.pending <= 0);
+        }
+        
+        filteredCustomers.forEach(c => {
+            let status = c.pending > 0 ? '<span class="badge badge-warning">Pending</span>' : '<span class="badge badge-success">Paid</span>';
+            
+            tbody.innerHTML += `
+                <tr>
+                    <td style="font-weight:600">${c.name}</td>
+                    <td>${c.phone}</td>
+                    <td>${status}</td>
+                    <td style="font-weight:700; color:${c.pending>0 ? 'var(--danger)' : 'var(--text-muted)'}">₹${c.pending.toFixed(2)}</td>
+                    <td style="display:flex; gap:0.5rem;">
+                        <button class="btn btn-outline" style="padding:0.25rem 0.5rem" onclick="openCustomerProfile('${c.id}')">Profile</button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        document.querySelectorAll('[id^="c-filter-"]').forEach(el => el.style.borderColor = 'var(--border)');
+        document.querySelectorAll('[id^="c-filter-"]').forEach(el => el.style.color = 'var(--text-main)');
+        document.getElementById('c-filter-' + currentFilter).style.borderColor = 'var(--primary)';
+        document.getElementById('c-filter-' + currentFilter).style.color = 'var(--primary)';
+    }
+    
+    function filterCustomers(f) { currentFilter = f; renderCustomers(); }
+
+    function openCustomerProfile(id) {
+        currentProfileId = id;
+        let c = customers.find(x => x.id === id);
+        if(!c) return;
+        
+        document.getElementById('cp-name').innerText = c.name;
+        document.getElementById('cp-phone').innerText = '📞 ' + c.phone;
+        document.getElementById('cp-purchased').innerText = '₹' + c.purchased.toFixed(2);
+        document.getElementById('cp-paid').innerText = '₹' + c.paid.toFixed(2);
+        document.getElementById('cp-pending').innerText = '₹' + c.pending.toFixed(2);
+        
+        document.getElementById('cp-wa').onclick = () => window.open('https://wa.me/91' + c.phone);
+        document.getElementById('cp-sms').onclick = () => window.open('sms:' + c.phone);
+        document.getElementById('cp-call').onclick = () => window.open('tel:' + c.phone);
+        
+        let hist = invoices.filter(i => i.customerId === id).sort((a,b) => b.timestamp - a.timestamp);
+        document.getElementById('cp-history').innerHTML = hist.map(i => {
+            let stat = 'PAID';
+            let statClass = 'badge-success';
+            if(i.pending > 0 && i.paid > 0) { stat = 'PARTIAL'; statClass = 'badge-warning'; }
+            else if(i.pending > 0 && i.paid === 0) { stat = 'PENDING'; statClass = 'badge-danger'; }
+            
+            return `
+            <tr>
+                <td>${i.date}</td>
+                <td>${i.id}</td>
+                <td>₹${i.total.toFixed(2)}</td>
+                <td>₹${i.paid.toFixed(2)}</td>
+                <td style="color:${i.pending>0 ? 'var(--danger)' : 'var(--text-muted)'}; font-weight:600">₹${i.pending.toFixed(2)}</td>
+                <td><span class="badge ${statClass}">${stat}</span></td>
+                <td><button class="btn btn-outline" style="padding:0.25rem 0.5rem" onclick="viewInvoice('${i.id}')">View</button></td>
+            </tr>
+            `;
+        }).join('');
+        
+        nav('customer-profile');
+    }
+
+    function editCurrentCustomer() {
+        let c = customers.find(x => x.id === currentProfileId);
+        let n = prompt("Edit Customer Name:", c.name);
+        if(n) c.name = n;
+        let p = prompt("Edit Customer Phone:", c.phone);
+        if(p) c.phone = p;
+        saveState();
+        openCustomerProfile(c.id);
+        showToast("Customer updated");
+    }
+
+    function showRecordPaymentModal() {
+        let c = customers.find(x => x.id === currentProfileId);
+        if(!c || c.pending <= 0) return alert("No pending amount.");
+        document.getElementById('mp-pending').innerText = '₹' + c.pending.toFixed(2);
+        document.getElementById('mp-received').value = c.pending;
+        calcPaymentModal();
+        document.getElementById('modal-payment').style.display = 'flex';
+    }
+    function calcPaymentModal() {
+        let c = customers.find(x => x.id === currentProfileId);
+        let rec = parseFloat(document.getElementById('mp-received').value) || 0;
+        let rem = Math.max(0, c.pending - rec);
+        document.getElementById('mp-remaining').innerText = '₹' + rem.toFixed(2);
+    }
+    function executeRecordPayment() {
+        let c = customers.find(x => x.id === currentProfileId);
+        let rec = parseFloat(document.getElementById('mp-received').value) || 0;
+        if(rec <= 0) return;
+        
+        c.paid += rec;
+        c.pending -= rec;
+        payments.push({ id: 'PAY-'+Date.now(), customerId: c.id, amount: rec, date: new Date().toISOString().split('T')[0] });
+        saveState();
+        
+        closeModal('modal-payment');
+        openCustomerProfile(c.id);
+        
+        currentShareData = { type: 'payment', c, amount: rec };
+        document.getElementById('share-status').innerText = 'Paid: ₹' + rec;
+        document.getElementById('modal-share').style.display = 'flex';
+    }
+
+    function archiveCurrentCustomer() {
+        document.getElementById('modal-delete').style.display = 'flex';
+    }
+    function executeArchiveCustomer() {
+        let c = customers.find(x => x.id === currentProfileId);
+        c.archived = true;
+        saveState();
+        closeModal('modal-delete');
+        showToast("Customer archived safely.");
+        nav('customers');
+    }
+
+    function showCustomerModal() {
+        document.getElementById('add-c-phone').value = '';
+        document.getElementById('add-c-name').value = '';
+        document.getElementById('add-c-dup-alert').style.display = 'none';
+        document.getElementById('add-c-submit').style.display = 'block';
+        document.getElementById('modal-customer').style.display = 'flex';
+    }
+    
+    function checkDuplicateCustomer() {
+        let p = document.getElementById('add-c-phone').value;
+        let n = document.getElementById('add-c-name').value;
+        let alertBox = document.getElementById('add-c-dup-alert');
+        let subBtn = document.getElementById('add-c-submit');
+        
+        let dupPhone = customers.find(c => c.phone === p && p.trim() !== '' && !c.archived);
+        if(dupPhone) {
+            alertBox.style.display = 'block';
+            alertBox.style.background = 'rgba(239, 68, 68, 0.1)';
+            alertBox.style.border = '1px solid var(--danger)';
+            alertBox.innerHTML = `
+                <div style="color:var(--danger); font-weight:700; margin-bottom:0.5rem">Existing Customer Found!</div>
+                <div><b>${dupPhone.name}</b></div>
+                <div style="color:var(--text-muted); margin-bottom:1rem">${dupPhone.phone}</div>
+                <div style="display:flex; gap:0.5rem; flex-wrap:wrap">
+                    <button class="btn btn-primary" onclick="openCustomerProfile('${dupPhone.id}'); closeModal('modal-customer')">Use Existing</button>
+                    <button class="btn btn-outline" onclick="currentProfileId='${dupPhone.id}'; closeModal('modal-customer'); editCurrentCustomer()">Edit Customer</button>
+                </div>
+            `;
+            subBtn.style.display = 'none';
+            return;
+        }
+        
+        let dupName = customers.find(c => c.name.toLowerCase() === n.toLowerCase() && n.trim() !== '' && !c.archived);
+        if(dupName) {
+            alertBox.style.display = 'block';
+            alertBox.style.background = 'rgba(245, 158, 11, 0.1)';
+            alertBox.style.border = '1px solid var(--warning)';
+            alertBox.innerHTML = `
+                <div style="color:var(--warning); font-weight:700; margin-bottom:0.5rem">Possible Existing Customer</div>
+                <div style="margin-bottom:1rem"><b>${dupName.name}</b> (${dupName.phone})</div>
+                <div style="display:flex; gap:0.5rem">
+                    <button class="btn btn-primary" onclick="openCustomerProfile('${dupName.id}'); closeModal('modal-customer')">View Existing</button>
+                    <button class="btn btn-outline" onclick="document.getElementById('add-c-dup-alert').style.display='none'; document.getElementById('add-c-submit').style.display='block'">Create New Anyway</button>
+                </div>
+            `;
+            subBtn.style.display = 'none';
+            return;
+        }
+        
+        alertBox.style.display = 'none';
+        subBtn.style.display = 'block';
+    }
+    
+    function submitCustomer() {
+        let p = document.getElementById('add-c-phone').value;
+        let n = document.getElementById('add-c-name').value;
+        if(!p || !n) return alert("Please fill both phone and name.");
+        customers.push({ id: 'C-'+Date.now(), name: n, phone: p, purchased: 0, paid: 0, pending: 0, archived: false });
+        saveState();
+        closeModal('modal-customer');
+        renderCustomers();
+        showToast("Customer created");
+    }
+
+    // --- BILLING ---
+    function checkDuplicateBillingCustomer() {
+        let phone = document.getElementById('bill-phone').value;
+        let dup = customers.find(c => c.phone === phone && !c.archived);
+        if(dup) {
+            document.getElementById('bill-duplicate-warning').style.display = 'block';
+            document.getElementById('bill-dup-name').innerText = "Name: " + dup.name;
+            currentBillCustomer = dup;
+        } else {
+            document.getElementById('bill-duplicate-warning').style.display = 'none';
+            currentBillCustomer = null;
+        }
+    }
+    function useExistingBillingCustomer() {
+        document.getElementById('bill-name').value = currentBillCustomer.name;
+        document.getElementById('bill-duplicate-warning').style.display = 'none';
+    }
+
+    function renderBillingProducts(search = '') {
+        let s = search.toLowerCase();
+        let html = '';
+        products.filter(p => !p.archived && p.name.toLowerCase().includes(s)).forEach(p => {
+            html += `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:1rem; border:1px solid var(--border); border-radius:0.5rem; margin-bottom:0.5rem; cursor:pointer" onclick="addToBill('${p.id}')">
+                <div style="display:flex; gap:1rem; align-items:center">
+                    <img src="${p.image}" style="width:40px; height:40px; border-radius:0.25rem; object-fit:cover">
+                    <div>
+                        <div style="font-weight:600">${p.name}</div>
+                        <div style="font-size:0.875rem; color:var(--text-muted)">₹${p.sp.toFixed(2)} | Stock: ${p.stock}</div>
+                    </div>
+                </div>
+                <button class="btn btn-outline" style="padding:0.25rem 0.5rem">Add</button>
+            </div>`;
+        });
+        document.getElementById('bill-product-list').innerHTML = html;
+    }
+
+    function addToBill(id) {
+        let p = products.find(x => x.id === id);
+        let ex = currentBillItems.find(x => x.id === id);
+        if(ex) ex.qty++;
+        else currentBillItems.push({ ...p, qty: 1 });
+        renderBill();
+    }
+
+    function renderBill() {
+        let html = '';
+        let sub = 0;
+        currentBillItems.forEach((item, i) => {
+            let tot = item.sp * item.qty;
+            sub += tot;
+            html += `
+            <div style="display:flex; justify-content:space-between; margin-bottom:1rem; align-items:center">
+                <div>
+                    <div style="font-weight:600">${item.name}</div>
+                    <div style="font-size:0.875rem; color:var(--text-muted)">₹${item.sp.toFixed(2)} x ${item.qty}</div>
+                </div>
+                <div style="display:flex; gap:1rem; align-items:center">
+                    <div style="font-weight:700">₹${tot.toFixed(2)}</div>
+                    <button class="btn btn-outline" style="padding:0.25rem" onclick="adjBill(${i}, -1)">-</button>
+                    <button class="btn btn-outline" style="padding:0.25rem" onclick="adjBill(${i}, 1)">+</button>
+                </div>
+            </div>`;
+        });
+        document.getElementById('bill-items').innerHTML = html;
+        document.getElementById('bill-subtotal').innerText = '₹' + sub.toFixed(2);
+        document.getElementById('bill-total').innerText = '₹' + sub.toFixed(2);
+        calcBillPending();
+    }
+    
+    function adjBill(idx, delta) {
+        currentBillItems[idx].qty += delta;
+        if(currentBillItems[idx].qty <= 0) currentBillItems.splice(idx, 1);
+        renderBill();
+    }
+    
+    function calcBillPending() {
+        let tot = currentBillItems.reduce((sum, item) => sum + (item.sp * item.qty), 0);
+        let rec = parseFloat(document.getElementById('bill-received').value) || 0;
+        let pen = Math.max(0, tot - rec);
+        document.getElementById('bill-pending').innerText = '₹' + pen.toFixed(2);
+        
+        let stat = "UNPAID";
+        if(rec >= tot && tot > 0) stat = "PAID";
+        else if (rec > 0) stat = "PARTIALLY PAID";
+        document.getElementById('bill-status').innerText = "Status: " + stat;
+        if(stat === 'PAID') document.getElementById('bill-status').style.color = "var(--success)";
+        else document.getElementById('bill-status').style.color = "var(--danger)";
+    }
+
+    function completeBill() {
+        if(currentBillItems.length === 0) return alert("Empty bill!");
+        let phone = document.getElementById('bill-phone').value;
+        let name = document.getElementById('bill-name').value;
+        if(!phone || !name) return alert("Customer Name and Phone required!");
+        
+        let c = customers.find(x => x.phone === phone && !x.archived);
+        if(!c) {
+            c = { id: 'C-'+Date.now(), name, phone, purchased: 0, paid: 0, pending: 0, archived: false };
+            customers.push(c);
+        }
+        
+        let tot = currentBillItems.reduce((sum, item) => sum + (item.sp * item.qty), 0);
+        let rec = parseFloat(document.getElementById('bill-received').value) || 0;
+        let pen = Math.max(0, tot - rec);
+        
+        c.purchased += tot;
+        c.paid += rec;
+        c.pending += pen;
+        
+        // Deduct stock
+        currentBillItems.forEach(item => {
+            let p = products.find(x => x.id === item.id);
+            if(p) p.stock -= item.qty;
+        });
+        
+        let inv = {
+            id: 'INV-' + Date.now(),
+            customerId: c.id,
+            date: new Date().toISOString().split('T')[0],
+            timestamp: Date.now(),
+            total: tot,
+            paid: rec,
+            pending: pen,
+            items: [...currentBillItems]
+        };
+        invoices.push(inv);
+        saveState();
+        
+        currentShareData = { type: 'invoice', inv, c };
+        
+        currentBillItems = [];
+        document.getElementById('bill-phone').value = '';
+        document.getElementById('bill-name').value = '';
+        document.getElementById('bill-received').value = '0';
+        currentBillCustomer = null;
+        renderBill();
+        
+        document.getElementById('share-status').innerText = pen > 0 ? "PARTIALLY PAID" : "PAID";
+        document.getElementById('modal-share').style.display = 'flex';
+    }
+
+    function executeShare(method) {
+        if(!currentShareData) return;
+        let c = currentShareData.c;
+        let msg = "";
+        if(currentShareData.type === 'invoice') {
+            msg = "Hello " + c.name + ",\nThank you for shopping at " + (settings.shopName || "our store") + "!\nInvoice: " + currentShareData.inv.id + "\nTotal: ₹" + currentShareData.inv.total + "\nPaid: ₹" + currentShareData.inv.paid + "\nPending: ₹" + currentShareData.inv.pending;
+            if(settings.gst) msg += "\nGST No: " + settings.gst;
+        } else if(currentShareData.type === 'payment') {
+            msg = "Hello " + c.name + ",\nPayment received: ₹" + currentShareData.amount + "\nRemaining Pending: ₹" + c.pending;
+        }
+        
+        msg = encodeURIComponent(msg);
+        if(method === 'wa') window.open('https://wa.me/91' + c.phone + '?text=' + msg);
+        if(method === 'sms') window.open('sms:' + c.phone + '?body=' + msg);
+        closeModal('modal-share');
+    }
+    
+    function viewInvoice(invId) {
+        let inv = invoices.find(x => x.id === invId);
+        if(!inv) return;
+        let c = customers.find(x => x.id === inv.customerId);
+        if(!c) return;
+        currentShareData = { type: 'invoice', inv, c };
+        document.getElementById('share-status').innerText = inv.pending > 0 ? "PARTIALLY PAID" : "PAID";
+        document.getElementById('modal-share').style.display = 'flex';
+    }
+    
+    function printReceipt() {
+        if(!currentShareData) return;
+        let html = '';
+        if(currentShareData.type === 'invoice') {
+            let inv = currentShareData.inv;
+            let c = currentShareData.c;
+            html = `
+                <div style="text-align:center; margin-bottom:1rem">
+                    <h2>${settings.shopName || 'Retail POS'}</h2>
+                    <div>${settings.address || ''}</div>
+                    ${settings.gst ? '<div>GSTIN: ' + settings.gst + '</div>' : ''}
+                    <hr style="margin:1rem 0">
+                    <h3>TAX INVOICE</h3>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
+                    <div><b>Bill To:</b><br>${c.name}<br>${c.phone}</div>
+                    <div style="text-align:right"><b>Invoice #:</b><br>${inv.id}<br>${inv.date}</div>
+                </div>
+                <table style="width:100%; text-align:left; border-collapse:collapse; margin-bottom:1rem">
+                    <tr style="border-bottom:1px solid #000"><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr>
+                    ${inv.items.map(item => `
+                        <tr>
+                            <td>${item.name}</td>
+                            <td>${item.qty}</td>
+                            <td>${item.sp.toFixed(2)}</td>
+                            <td>${(item.sp * item.qty).toFixed(2)}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+                <div style="text-align:right; border-top:1px solid #000; padding-top:1rem; margin-bottom:1rem">
+                    <div>Subtotal: ₹${inv.total.toFixed(2)}</div>
+                    <div><b>Total: ₹${inv.total.toFixed(2)}</b></div>
+                    <div>Paid: ₹${inv.paid.toFixed(2)}</div>
+                    <div>Pending: ₹${inv.pending.toFixed(2)}</div>
+                </div>
+                <div style="text-align:center">Thank you for your business!</div>
+            `;
+        } else if (currentShareData.type === 'payment') {
+            let c = currentShareData.c;
+            html = `
+                <div style="text-align:center; margin-bottom:1rem">
+                    <h2>${settings.shopName || 'Retail POS'}</h2>
+                    <div>${settings.address || ''}</div>
+                    <hr style="margin:1rem 0">
+                    <h3>PAYMENT RECEIPT</h3>
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <div><b>Customer:</b> ${c.name} (${c.phone})</div>
+                    <div><b>Amount Received:</b> ₹${currentShareData.amount.toFixed(2)}</div>
+                    <div><b>Remaining Pending:</b> ₹${c.pending.toFixed(2)}</div>
+                </div>
+                <div style="text-align:center">Thank you!</div>
+            `;
+        }
+        document.getElementById('print-area').innerHTML = html;
+        window.print();
+    }
+
+    // --- PRODUCTS ---
+    function renderProductsView(search = '') {
+        let s = search.toLowerCase();
+        let html = '';
+        products.filter(p => !p.archived && p.name.toLowerCase().includes(s)).forEach(p => {
+            html += `
+            <div class="card" style="padding:1rem; position:relative">
+                <img src="${p.image}" style="width:100%; height:150px; object-fit:cover; border-radius:0.5rem; margin-bottom:1rem">
+                <div style="font-weight:600; font-size:1.1rem">${p.name}</div>
+                <div style="font-size:0.875rem; color:var(--text-muted)">${p.cat}</div>
+                <div style="display:flex; justify-content:space-between; margin-top:0.5rem">
+                    <span style="font-weight:700">₹${p.sp.toFixed(2)}</span>
+                    <span style="color:${p.stock <= p.minStock ? 'var(--danger)' : 'var(--success)'}">Stock: ${p.stock}</span>
+                </div>
+                <div style="display:flex; gap:0.5rem; margin-top:1rem">
+                    <button class="btn btn-outline" style="flex:1; padding:0.25rem" onclick="editProduct('${p.id}')"><i data-lucide="edit" size="16"></i> Edit</button>
+                    <button class="btn btn-outline" style="flex:1; padding:0.25rem; color:var(--danger)" onclick="deleteProduct('${p.id}')"><i data-lucide="trash" size="16"></i> Delete</button>
+                </div>
+            </div>`;
+        });
+        document.getElementById('products-grid').innerHTML = html;
+        lucide.createIcons();
+    }
+
+    function showProductModal() {
+        document.getElementById('prod-id').value = '';
+        document.getElementById('prod-name').value = '';
+        document.getElementById('prod-cat').value = '';
+        document.getElementById('prod-brand').value = '';
+        document.getElementById('prod-unit').value = '';
+        document.getElementById('prod-pp').value = '';
+        document.getElementById('prod-sp').value = '';
+        document.getElementById('prod-img').value = '';
+        document.getElementById('prod-img-preview').style.display = 'none';
+        document.getElementById('modal-product').style.display = 'flex';
+    }
+
+    function editProduct(id) {
+        let p = products.find(x => x.id === id);
+        if(!p) return;
+        document.getElementById('prod-id').value = p.id;
+        document.getElementById('prod-name').value = p.name;
+        document.getElementById('prod-cat').value = p.cat;
+        document.getElementById('prod-brand').value = p.brand;
+        document.getElementById('prod-unit').value = p.unit;
+        document.getElementById('prod-pp').value = p.pp;
+        document.getElementById('prod-sp').value = p.sp;
+        if(p.image && p.image !== 'https://via.placeholder.com/150?text=No+Image') {
+            document.getElementById('prod-img-preview').src = p.image;
+            document.getElementById('prod-img-preview').style.display = 'block';
+        } else {
+            document.getElementById('prod-img-preview').style.display = 'none';
+        }
+        document.getElementById('modal-product').style.display = 'flex';
+    }
+
+    function deleteProduct(id) {
+        if(!confirm("Are you sure you want to delete this product?")) return;
+        let p = products.find(x => x.id === id);
+        if(p) p.archived = true;
+        saveState();
+        renderProductsView();
+        showToast("Product deleted");
+    }
+
+    function previewImage(e) {
+        let file = e.target.files[0];
+        if(!file) return;
+        let r = new FileReader();
+        r.onload = ev => {
+            document.getElementById('prod-img-preview').src = ev.target.result;
+            document.getElementById('prod-img-preview').style.display = 'block';
+        };
+        r.readAsDataURL(file);
+    }
+
+    function saveProduct(e) {
+        if(e) e.preventDefault();
+        
+        let name = document.getElementById('prod-name').value;
+        let cat = document.getElementById('prod-cat').value;
+        let unit = document.getElementById('prod-unit').value;
+        let sp = document.getElementById('prod-sp').value;
+        
+        if(!name || !cat || !unit || !sp) {
+            return alert("Please fill all required fields (Name, Category, Unit, Selling Price)");
+        }
+        
+        let img = document.getElementById('prod-img-preview').src;
+        if(!img || img === window.location.href || img === '') {
+            img = 'https://via.placeholder.com/150?text=No+Image';
+        }
+        
+        let p = {
+            id: document.getElementById('prod-id').value || 'P-'+Date.now(),
+            name: document.getElementById('prod-name').value,
+            cat: document.getElementById('prod-cat').value,
+            brand: document.getElementById('prod-brand').value,
+            unit: document.getElementById('prod-unit').value,
+            pp: parseFloat(document.getElementById('prod-pp').value) || 0,
+            sp: parseFloat(document.getElementById('prod-sp').value) || 0,
+            stock: 0,
+            minStock: 5,
+            image: img,
+            archived: false
+        };
+        
+        let idx = products.findIndex(x => x.id === p.id);
+        if(idx >= 0) {
+            p.stock = products[idx].stock;
+            p.minStock = products[idx].minStock;
+            products[idx] = p;
+        } else {
+            products.push(p);
+        }
+        
+        saveState();
+        closeModal('modal-product');
+        renderProductsView();
+        showToast("Product saved successfully!");
+    }
+
+    // --- SHOPPING LIST & MODE ---
+    function renderShopCatalog(search = '') {
+        let s = search.toLowerCase();
+        let html = '';
+        products.filter(p => !p.archived && p.name.toLowerCase().includes(s)).forEach(p => {
+            html += `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:1rem; border-bottom:1px solid var(--border);">
+                <div style="display:flex; gap:1rem; align-items:center">
+                    <img src="${p.image}" style="width:40px; height:40px; border-radius:0.25rem; object-fit:cover">
+                    <div>
+                        <div style="font-weight:600">${p.name}</div>
+                        <div style="font-size:0.75rem; color:${p.stock <= p.minStock ? 'var(--danger)' : 'var(--text-muted)'}">Stock: ${p.stock} (Min: ${p.minStock})</div>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.5rem">
+                    <input type="number" id="sl-qty-${p.id}" class="form-control" style="margin:0; width:60px; padding:0.25rem" value="1">
+                    <button class="btn btn-outline" onclick="addToShopList('${p.id}')"><i data-lucide="plus"></i></button>
+                </div>
+            </div>`;
+        });
+        document.getElementById('shop-catalog').innerHTML = html;
+        renderShopList();
+        lucide.createIcons();
+    }
+    
+    function addToShopList(id) {
+        let qty = parseInt(document.getElementById('sl-qty-' + id).value) || 1;
+        let p = products.find(x => x.id === id);
+        let ex = shoppingList.find(x => x.id === id);
+        if(ex) ex.planned += qty;
+        else shoppingList.push({ id: p.id, name: p.name, image: p.image, planned: qty });
+        saveState();
+        renderShopList();
+        showToast("Added to list");
+    }
+
+    function editShopListQty(index, newQty) {
+        let q = parseInt(newQty);
+        if(q > 0) {
+            shoppingList[index].planned = q;
+        } else {
+            shoppingList.splice(index, 1);
+        }
+        saveState();
+        renderShopList();
+    }
+    
+    function renderShopList() {
+        document.getElementById('sl-badge').innerText = shoppingList.length;
+        document.getElementById('sl-badge').style.display = shoppingList.length > 0 ? 'inline-block' : 'none';
+        
+        let html = '';
+        shoppingList.forEach((item, i) => {
+            html += `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:1rem; border-bottom:1px solid var(--border);">
+                <div style="display:flex; gap:1rem; align-items:center">
+                    <img src="${item.image}" style="width:40px; height:40px; border-radius:0.25rem; object-fit:cover">
+                    <div>
+                        <div style="font-weight:600">${item.name}</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted)">Planned Qty</div>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.5rem">
+                    <input type="number" class="form-control" style="margin:0; width:60px; padding:0.25rem" value="${item.planned}" onchange="editShopListQty(${i}, this.value)">
+                    <button class="btn btn-outline" style="color:var(--danger); padding:0.5rem" onclick="shoppingList.splice(${i},1); saveState(); renderShopList()"><i data-lucide="trash-2" size="16"></i></button>
+                </div>
+            </div>`;
+        });
+        document.getElementById('shop-list-items').innerHTML = html;
+        lucide.createIcons();
+    }
+    
+    function clearShoppingList() { shoppingList = []; saveState(); renderShopList(); }
+    
+    function shareShoppingList() {
+        let msg = "🛒 SHOPPING LIST\n\n";
+        shoppingList.forEach(item => msg += item.name + " - " + item.planned + "\n");
+        window.open('https://wa.me/?text=' + encodeURIComponent(msg));
+    }
+
+    function renderShoppingMode() {
+        let html = '';
+        shoppingList.forEach((item, i) => {
+            html += `
+            <div class="card" style="margin-bottom:1rem; display:flex; align-items:center; gap:1rem">
+                <input type="checkbox" class="sm-check" id="sm-c-${i}" style="width:20px; height:20px">
+                <img src="${item.image}" style="width:50px; height:50px; border-radius:0.5rem; object-fit:cover">
+                <div style="flex:1">
+                    <div style="font-weight:600">${item.name}</div>
+                    <div style="font-size:0.875rem; color:var(--text-muted)">Planned: ${item.planned}</div>
+                </div>
+                <div style="text-align:center">
+                    <div style="font-size:0.75rem; color:var(--text-muted)">Actual</div>
+                    <input type="number" id="sm-q-${i}" class="form-control" style="width:60px; margin:0; padding:0.25rem; text-align:center" value="${item.planned}">
+                </div>
+            </div>`;
+        });
+        document.getElementById('sm-items').innerHTML = html;
+    }
+    
+    function confirmPurchase() {
+        let toKeep = [];
+        let updated = 0;
+        shoppingList.forEach((item, i) => {
+            let checked = document.getElementById('sm-c-' + i).checked;
+            let act = parseInt(document.getElementById('sm-q-' + i).value) || 0;
+            
+            if(checked && act > 0) {
+                let p = products.find(x => x.id === item.id);
+                if(p) { p.stock += act; updated++; }
+                if(act < item.planned) {
+                    item.planned -= act;
+                    toKeep.push(item);
+                }
+            } else {
+                toKeep.push(item);
+            }
+        });
+        
+        shoppingList = toKeep;
+        saveState();
+        showToast('Stock updated for ' + updated + ' items!');
+        nav('dashboard');
+    }
+
+    // --- CSV LOGIC ---
+    function exportCSV() {
+        let csv = "ID,Name,Category,Brand,Unit,PurchasePrice,SellingPrice,Stock,MinStock\n";
+        products.forEach(p => {
+            if(!p.archived) csv += '"' + p.id + '","' + p.name + '","' + p.cat + '","' + p.brand + '","' + p.unit + '",' + p.pp + ',' + p.sp + ',' + p.stock + ',' + p.minStock + '\n';
+        });
+        let blob = new Blob([csv], { type: 'text/csv' });
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement('a');
+        a.href = url; a.download = 'products_export.csv'; a.click();
+    }
+    
+    function exportCustomersCSV() {
+        let csv = "ID,Name,Phone,Purchased,Paid,Pending\n";
+        customers.forEach(c => {
+            if(!c.archived) csv += '"' + c.id + '","' + c.name + '","' + c.phone + '",' + c.purchased + ',' + c.paid + ',' + c.pending + '\n';
+        });
+        let blob = new Blob([csv], { type: 'text/csv' });
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement('a');
+        a.href = url; a.download = 'customers_export.csv'; a.click();
+    }
+    
+    function previewCSV() {
+        let file = document.getElementById('csv-file').files[0];
+        if(!file) return alert("Select a file first");
+        document.getElementById('csv-preview').style.display = 'block';
+        document.getElementById('csv-stats').innerHTML = "Ready to Import. Please confirm.";
+    }
+    function executeCSVImport() {
+        let file = document.getElementById('csv-file').files[0];
+        let r = new FileReader();
+        r.onload = e => {
+            let lines = e.target.result.split('\n');
+            let imported = 0;
+            for(let i=1; i<lines.length; i++) {
+                if(!lines[i].trim()) continue;
+                let cols = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+                if(cols && cols.length >= 7) {
+                    let p = {
+                        id: cols[0].replace(/"/g, ''),
+                        name: cols[1].replace(/"/g, ''),
+                        cat: cols[2].replace(/"/g, ''),
+                        brand: cols[3] ? cols[3].replace(/"/g, '') : '',
+                        unit: cols[4].replace(/"/g, ''),
+                        pp: parseFloat(cols[5]) || 0,
+                        sp: parseFloat(cols[6]) || 0,
+                        stock: parseFloat(cols[7]) || 0,
+                        minStock: parseFloat(cols[8]) || 5,
+                        image: 'https://via.placeholder.com/150?text=Imported',
+                        archived: false
+                    };
+                    let idx = products.findIndex(x => x.id === p.id);
+                    if(idx >= 0) products[idx] = p; else products.push(p);
+                    imported++;
+                }
+            }
+            saveState();
+            showToast(imported + ' products imported!');
+            closeModal('modal-csv');
+            renderProductsView();
+        };
+        r.readAsText(file);
+    }
+
+    // --- SETTINGS ---
+    function renderSettings() {
+        document.getElementById('set-name').value = settings.shopName || '';
+        document.getElementById('set-address').value = settings.address || '';
+        document.getElementById('set-gst').value = settings.gst || '';
+        if(settings.logo) {
+            document.getElementById('set-logo-preview').src = settings.logo;
+            document.getElementById('set-logo-preview').style.display = 'block';
+        } else {
+            document.getElementById('set-logo-preview').style.display = 'none';
+        }
+    }
+    
+    function previewSettingsLogo(e) {
+        let file = e.target.files[0];
+        if(!file) return;
+        let r = new FileReader();
+        r.onload = ev => {
+            document.getElementById('set-logo-preview').src = ev.target.result;
+            document.getElementById('set-logo-preview').style.display = 'block';
+        };
+        r.readAsDataURL(file);
+    }
+    
+    function saveSettings() {
+        settings.shopName = document.getElementById('set-name').value || 'Retail POS';
+        settings.address = document.getElementById('set-address').value;
+        settings.gst = document.getElementById('set-gst').value;
+        if(document.getElementById('set-logo-preview').style.display === 'block') {
+            settings.logo = document.getElementById('set-logo-preview').src;
+        } else {
+            settings.logo = '';
+        }
+        saveState();
+        updateBrandDisplay();
+        showToast("Settings saved successfully!");
+    }
+    
+    function updateBrandDisplay() {
+        const brandEls = document.querySelectorAll('.sidebar-brand');
+        brandEls.forEach(el => {
+            if(settings.logo) {
+                el.innerHTML = `<img src="${settings.logo}" style="height:32px; width:32px; object-fit:contain; background:white; border-radius:4px; padding:2px;"> ` + settings.shopName;
+            } else {
+                el.innerHTML = `<i data-lucide="store"></i> ` + settings.shopName;
+            }
+        });
+        lucide.createIcons();
+    }
+
+    // --- INIT ---
+    updateBrandDisplay();
+    nav('dashboard');
+    
+    // Seed Demo Data if empty to make UI usable immediately
+    if(products.length === 0) {
+        products.push({ id: 'P-1001', name: 'Amul Butter 500g', cat: 'Dairy', brand: 'Amul', unit: 'pack', pp: 230, sp: 250, stock: 0, minStock: 5, image: 'https://via.placeholder.com/150?text=Amul+Butter', archived: false });
+        products.push({ id: 'P-1002', name: 'Coca Cola 1.25L', cat: 'Beverages', brand: 'Coca Cola', unit: 'bottle', pp: 55, sp: 65, stock: 0, minStock: 12, image: 'https://via.placeholder.com/150?text=Coca+Cola', archived: false });
+        products.push({ id: 'P-1003', name: 'Lays Classic Salted', cat: 'Snacks', brand: 'Lays', unit: 'pack', pp: 18, sp: 20, stock: 0, minStock: 20, image: 'https://via.placeholder.com/150?text=Lays', archived: false });
+        products.push({ id: 'P-1004', name: 'Chocolate Cone', cat: 'Ice Cream', brand: 'Kwality Walls', unit: 'pc', pp: 40, sp: 50, stock: 0, minStock: 10, image: 'https://via.placeholder.com/150?text=Choco+Cone', archived: false });
+        products.push({ id: 'P-1005', name: 'Maggi Noodles 400g', cat: 'Groceries', brand: 'Nestle', unit: 'pack', pp: 55, sp: 60, stock: 0, minStock: 15, image: 'https://via.placeholder.com/150?text=Maggi', archived: false });
+        products.push({ id: 'P-1006', name: 'Tata Salt 1kg', cat: 'Groceries', brand: 'Tata', unit: 'pack', pp: 24, sp: 28, stock: 0, minStock: 10, image: 'https://via.placeholder.com/150?text=Tata+Salt', archived: false });
+        saveState();
+    }
+
+</script>
+</body>
+</html>
