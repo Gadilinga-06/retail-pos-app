@@ -964,11 +964,27 @@
         if(!currentShareData) return;
         let c = currentShareData.c;
         let msg = "";
+        let shopName = settings.shopName || "Our Store";
+
         if(currentShareData.type === 'invoice') {
-            msg = "Hello " + c.name + ",\nThank you for shopping at " + (settings.shopName || "our store") + "!\nInvoice: " + currentShareData.inv.id + "\nTotal: ₹" + currentShareData.inv.total + "\nPaid: ₹" + currentShareData.inv.paid + "\nPending: ₹" + currentShareData.inv.pending;
-            if(settings.gst) msg += "\nGST No: " + settings.gst;
+            let inv = currentShareData.inv;
+            msg = `Hello ${c.name},\nThank you for shopping at ${shopName}!\n\n`;
+            msg += `📄 Invoice: ${inv.id}\n`;
+            msg += `📅 Date: ${inv.date}\n`;
+            if(settings.gst) msg += `GSTIN: ${settings.gst}\n`;
+            
+            msg += `\n--- Items ---\n`;
+            inv.items.forEach(item => {
+                msg += `${item.name} (x${item.qty}) = ₹${(item.sp * item.qty)}\n`;
+            });
+            msg += `-------------\n`;
+            
+            msg += `💰 Total: ₹${inv.total}\n`;
+            msg += `✅ Paid: ₹${inv.paid}\n`;
+            msg += `⏳ Pending: ₹${inv.pending}\n\n`;
+            msg += `Please visit us again!`;
         } else if(currentShareData.type === 'payment') {
-            msg = "Hello " + c.name + ",\nPayment received: ₹" + currentShareData.amount + "\nRemaining Pending: ₹" + c.pending;
+            msg = `Hello ${c.name},\nPayment received: ₹${currentShareData.amount}\nRemaining Pending: ₹${c.pending}\n\nThank you for your payment to ${shopName}!`;
         }
         
         msg = encodeURIComponent(msg);
