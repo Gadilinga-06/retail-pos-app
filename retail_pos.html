@@ -81,15 +81,20 @@
             .grid-4, .grid-3 { grid-template-columns: 1fr; }
             .hide-mobile { display: none; }
         }
+        /* Print */
+        #print-area { display: none; }
+
         @media print {
             body * { visibility: hidden; }
-            #print-area, #print-area * { visibility: visible; }
-            #print-area { position: absolute; left: 0; top: 0; width: 100%; color: black; background: white; padding: 1rem; }
+            #print-area { display: block !important; position: absolute; left: 0; top: 0; width: 100%; color: black; background: white; padding: 1rem; }
+            #print-area * { visibility: visible; }
             .btn { display: none !important; }
         }
     </style>
 </head>
 <body>
+
+<div id="print-area"></div>
 
 <aside class="sidebar">
     <div class="sidebar-brand"><i data-lucide="store"></i> Retail POS</div>
